@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace AudiobookRequest.Core.Clients;
 
@@ -8,11 +9,15 @@ public class JellyfinClient(HttpClient httpClient) : IJellyfinClient
     private const string DeviceHeader =
         "MediaBrowser Client=\"AudiobookRequest\", Device=\"Server\", DeviceId=\"audiobookrequest-service\", Version=\"1.0.0\"";
 
+    // Jellyfin's API expects exact PascalCase field names ("Username", "Pw"). Pass this explicitly rather
+    // than relying on JsonContent.Create's ambient default, which serializes anonymous types as camelCase.
+    private static readonly JsonSerializerOptions PascalCaseOptions = new() { PropertyNamingPolicy = null };
+
     public async Task<JellyfinAuthResult?> AuthenticateAsync(string baseUrl, string username, string password, CancellationToken ct = default)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, Combine(baseUrl, "/Users/AuthenticateByName"));
         request.Headers.TryAddWithoutValidation("X-Emby-Authorization", DeviceHeader);
-        request.Content = JsonContent.Create(new { Username = username, Pw = password });
+        request.Content = JsonContent.Create(new { Username = username, Pw = password }, options: PascalCaseOptions);
 
         using var response = await httpClient.SendAsync(request, ct);
         if (!response.IsSuccessStatusCode)

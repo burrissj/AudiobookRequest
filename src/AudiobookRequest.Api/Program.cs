@@ -1,3 +1,4 @@
+using AudiobookRequest.Api.BackgroundServices;
 using AudiobookRequest.Api.Endpoints;
 using AudiobookRequest.Api.Hubs;
 using AudiobookRequest.Api.Services;
@@ -27,6 +28,7 @@ builder.Services.AddHttpClient<IReadarrClient, ReadarrClient>();
 
 builder.Services.AddSignalR();
 builder.Services.AddScoped<INotificationSender, NotificationSender>();
+builder.Services.AddHostedService<ReadarrOrchestrationBackgroundService>();
 
 builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -75,6 +77,7 @@ app.UseAuthorization();
 
 app.MapAuthEndpoints();
 app.MapSetupEndpoints();
+app.MapBookEndpoints();
 app.MapHub<NotificationHub>("/hubs/notifications");
 
 app.MapFallbackToFile("index.html");

@@ -23,6 +23,8 @@ public class BookRequest
 
     /// <summary>The book id/GUID as returned by Readarr's lookup endpoint (foreignBookId).</summary>
     public required string ReadarrForeignBookId { get; set; }
+    /// <summary>The author id/GUID as returned by Readarr's lookup endpoint (foreignAuthorId), needed to add the author.</summary>
+    public required string ReadarrForeignAuthorId { get; set; }
     /// <summary>Readarr's internal numeric book id, populated once the author/book has been added.</summary>
     public int? ReadarrBookId { get; set; }
 

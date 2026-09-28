@@ -115,6 +115,10 @@ namespace AudiobookRequest.Data.Migrations
                     b.Property<int?>("ReadarrBookId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("ReadarrForeignAuthorId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("ReadarrForeignBookId")
                         .IsRequired()
                         .HasColumnType("TEXT");
