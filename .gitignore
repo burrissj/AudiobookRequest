@@ -1,0 +1,16 @@
+# .NET
+bin/
+obj/
+*.user
+.vs/
+
+# Runtime data (SQLite db, logs, data-protection keys)
+src/AudiobookRequest.Api/data/
+
+# Node / client
+client/node_modules/
+client/dist/
+
+# OS
+.DS_Store
+Thumbs.db

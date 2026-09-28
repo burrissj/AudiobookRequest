@@ -1,0 +1,145 @@
+:root {
+  --text: #3f3d45;
+  --text-h: #16151a;
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --border: #e2e1e6;
+  --accent: #7c3aed;
+  --accent-contrast: #ffffff;
+  --error: #d92d20;
+  --ok: #16a34a;
+
+  font: 16px/1.5 system-ui, 'Segoe UI', Roboto, sans-serif;
+  color-scheme: light dark;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #d4d2d9;
+    --text-h: #f5f4f7;
+    --bg: #121214;
+    --surface: #1c1c1f;
+    --border: #2e2d33;
+    --accent: #a78bfa;
+    --accent-contrast: #16151a;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+h1,
+h2 {
+  color: var(--text-h);
+  font-weight: 600;
+}
+
+.page {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 24px 20px 64px;
+  min-height: 100svh;
+}
+
+.subtitle {
+  color: var(--text);
+  opacity: 0.75;
+  margin: 4px 0 24px;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+fieldset {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+legend {
+  padding: 0 6px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.9rem;
+}
+
+input {
+  font: inherit;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-h);
+}
+
+button {
+  font: inherit;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 600;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.error {
+  color: var(--error);
+  font-size: 0.9rem;
+}
+
+.badge {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 0.85rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--border);
+}
+
+.badge-ok {
+  background: color-mix(in srgb, var(--ok) 20%, transparent);
+  color: var(--ok);
+}
+
+.badge-fail {
+  background: color-mix(in srgb, var(--error) 20%, transparent);
+  color: var(--error);
+}
+
+.home-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
