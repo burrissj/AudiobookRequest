@@ -20,6 +20,20 @@ public record ReadarrQueueItem(string? Title, int? BookId, string Status, double
 
 public record ReadarrHistoryItem(int? BookId, string EventType, DateTimeOffset Date);
 
+public record ReadarrBookFile(int Id, int BookId, string Path);
+
+internal class ReadarrBookFileRaw
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("bookId")]
+    public int BookId { get; set; }
+
+    [JsonPropertyName("path")]
+    public string? Path { get; set; }
+}
+
 internal class ReadarrBookRaw
 {
     [JsonPropertyName("foreignBookId")]

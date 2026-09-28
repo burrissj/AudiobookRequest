@@ -107,6 +107,17 @@ public class ReadarrClient(HttpClient httpClient) : IReadarrClient
             .ToList();
     }
 
+    public async Task<IReadOnlyList<ReadarrBookFile>> GetBookFilesAsync(string baseUrl, string apiKey, int bookId, CancellationToken ct = default)
+    {
+        using var response = await SendAsync(HttpMethod.Get, baseUrl, apiKey, $"/api/v1/bookfile?bookId={bookId}", ct: ct);
+        response.EnsureSuccessStatusCode();
+        var raw = await response.Content.ReadFromJsonAsync<List<ReadarrBookFileRaw>>(cancellationToken: ct) ?? [];
+        return raw
+            .Where(f => !string.IsNullOrEmpty(f.Path))
+            .Select(f => new ReadarrBookFile(f.Id, f.BookId, f.Path!))
+            .ToList();
+    }
+
     private static ReadarrBookLookupResult Map(ReadarrBookRaw raw)
     {
         var cover = raw.Images?.FirstOrDefault(i => i.CoverType == "cover");

@@ -2,7 +2,9 @@ using AudiobookRequest.Api.BackgroundServices;
 using AudiobookRequest.Api.Endpoints;
 using AudiobookRequest.Api.Hubs;
 using AudiobookRequest.Api.Services;
+using AudiobookRequest.Core.Audio;
 using AudiobookRequest.Core.Clients;
+using AudiobookRequest.Core.Library;
 using AudiobookRequest.Data;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
@@ -25,10 +27,20 @@ builder.Services.AddScoped<SettingsService>();
 
 builder.Services.AddHttpClient<IJellyfinClient, JellyfinClient>();
 builder.Services.AddHttpClient<IReadarrClient, ReadarrClient>();
+builder.Services.AddHttpClient<ICoverArtDownloader, CoverArtDownloader>();
+
+builder.Services.AddSingleton<IProcessRunner, ProcessRunner>();
+builder.Services.AddSingleton<IAudioCombiner>(sp => new FfmpegAudioCombiner(
+    sp.GetRequiredService<IProcessRunner>(),
+    builder.Configuration["Ffmpeg:Path"] ?? "ffmpeg",
+    builder.Configuration["Ffmpeg:ProbePath"] ?? "ffprobe"));
+builder.Services.AddScoped<BookProcessingService>();
 
 builder.Services.AddSignalR();
 builder.Services.AddScoped<INotificationSender, NotificationSender>();
 builder.Services.AddHostedService<ReadarrOrchestrationBackgroundService>();
+builder.Services.AddHostedService<LibraryProcessingBackgroundService>();
+builder.Services.AddHostedService<OriginalCleanupBackgroundService>();
 
 builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

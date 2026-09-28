@@ -21,4 +21,7 @@ public interface IReadarrClient
     Task<IReadOnlyList<ReadarrQueueItem>> GetQueueAsync(string baseUrl, string apiKey, CancellationToken ct = default);
 
     Task<IReadOnlyList<ReadarrHistoryItem>> GetHistorySinceAsync(string baseUrl, string apiKey, DateTimeOffset since, CancellationToken ct = default);
+
+    /// <summary>The actual file(s) Readarr imported for a book, as absolute paths on disk under the configured root folder.</summary>
+    Task<IReadOnlyList<ReadarrBookFile>> GetBookFilesAsync(string baseUrl, string apiKey, int bookId, CancellationToken ct = default);
 }
