@@ -1,11 +1,17 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace AudiobookRequest.Core.Clients;
 
-public class JellyfinClient(HttpClient httpClient) : IJellyfinClient
+public class JellyfinClient(HttpClient httpClient, ILogger<JellyfinClient> logger) : IJellyfinClient
 {
+    // Client-identification header for the (unauthenticated) login request. Jellyfin's own web client
+    // sends this as the standard "Authorization" header, not the legacy "X-Emby-Authorization" name
+    // used by older Jellyfin/Emby versions -- confirmed against a real Jellyfin 12.1.0 server, where
+    // using the legacy header name causes the server to reject the request with a generic 400 rather
+    // than the 401 it returns for genuinely bad credentials.
     private const string DeviceHeader =
         "MediaBrowser Client=\"AudiobookRequest\", Device=\"Server\", DeviceId=\"audiobookrequest-service\", Version=\"1.0.0\"";
 
@@ -15,13 +21,15 @@ public class JellyfinClient(HttpClient httpClient) : IJellyfinClient
 
     public async Task<JellyfinAuthResult?> AuthenticateAsync(string baseUrl, string username, string password, CancellationToken ct = default)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Post, Combine(baseUrl, "/Users/AuthenticateByName"));
-        request.Headers.TryAddWithoutValidation("X-Emby-Authorization", DeviceHeader);
+        using var request = new HttpRequestMessage(HttpMethod.Post, Combine(baseUrl, "/Users/authenticatebyname"));
+        request.Headers.TryAddWithoutValidation("Authorization", DeviceHeader);
         request.Content = JsonContent.Create(new { Username = username, Pw = password }, options: PascalCaseOptions);
 
         using var response = await httpClient.SendAsync(request, ct);
         if (!response.IsSuccessStatusCode)
         {
+            var body = await response.Content.ReadAsStringAsync(ct);
+            logger.LogWarning("Jellyfin login rejected with {Status}: {Body}", response.StatusCode, body);
             return null;
         }
 

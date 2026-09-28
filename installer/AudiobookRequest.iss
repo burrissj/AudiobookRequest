@@ -3,7 +3,7 @@
 ; the built React client baked into wwwroot, and ffmpeg/ffprobe under tools\.
 
 #define MyAppName "Audiobook Request"
-#define MyAppVersion "0.1.0"
+#define MyAppVersion "0.1.2"
 #define MyAppPublisher "Audiobook Request"
 #define MyAppExeName "AudiobookRequest.Api.exe"
 #define MyServiceName "AudiobookRequest"
@@ -37,6 +37,57 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\AudiobookRequest.url"; Task
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional shortcuts:"; Flags: unchecked
+
+[Code]
+function GetServiceStateLine(): String;
+var
+  ResultCode: Integer;
+  TempFile: String;
+  Lines: TArrayOfString;
+  I: Integer;
+begin
+  Result := '';
+  TempFile := ExpandConstant('{tmp}\abr-svcstate.txt');
+  Exec(ExpandConstant('{cmd}'), '/C sc.exe query "{#MyServiceName}" > "' + TempFile + '" 2>&1', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  if LoadStringsFromFile(TempFile, Lines) then
+    for I := 0 to GetArrayLength(Lines) - 1 do
+      if Pos('STATE', Lines[I]) > 0 then
+      begin
+        Result := Lines[I];
+        Break;
+      end;
+end;
+
+procedure StopAndRemoveExistingService;
+var
+  ResultCode: Integer;
+  Attempts: Integer;
+begin
+  // A running service holds its exe file locked, which would make the upcoming [Files] copy fail.
+  // `sc stop` only *requests* the stop and returns quickly -- it does not wait for the process to
+  // actually exit -- so poll until the service reports STOPPED (or give up after ~10s) before
+  // deleting/overwriting anything. Skipped entirely when there's no existing service (first install)
+  // or it's already stopped, both of which `sc stop` signals via a non-zero exit code.
+  Exec(ExpandConstant('{sys}\sc.exe'), 'stop "{#MyServiceName}"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  if ResultCode = 0 then
+  begin
+    Attempts := 0;
+    while (Pos('STOPPED', GetServiceStateLine()) = 0) and (Attempts < 20) do
+    begin
+      Sleep(500);
+      Attempts := Attempts + 1;
+    end;
+    Sleep(500);
+  end;
+  Exec(ExpandConstant('{sys}\sc.exe'), 'delete "{#MyServiceName}"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Sleep(500);
+end;
+
+function InitializeSetup(): Boolean;
+begin
+  StopAndRemoveExistingService;
+  Result := True;
+end;
 
 [Run]
 ; Register and start the Windows Service. LocalSystem (the sc.exe default) has full access to
