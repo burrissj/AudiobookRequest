@@ -11,6 +11,13 @@ src/AudiobookRequest.Api/data/
 client/node_modules/
 client/dist/
 
+# Publish/installer build output (produced by scripts/publish.ps1)
+src/AudiobookRequest.Api/wwwroot/
+publish/
+tools/download/
+tools/ffmpeg/
+installer/Output/
+
 # OS
 .DS_Store
 Thumbs.db
