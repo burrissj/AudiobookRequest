@@ -12,7 +12,14 @@ public class ReadarrBookLookupResult
     public string? CoverUrl { get; set; }
     public DateTimeOffset? ReleaseDate { get; set; }
 
-    public required string ForeignAuthorId { get; set; }
+    /// <summary>
+    /// The author's foreign id, when the metadata provider nests it directly in the book lookup result.
+    /// Some alternative metadata providers (post-Readarr-EOL) don't -- for those, AuthorName is still
+    /// populated (derived from the flattened authorTitle field) but this is null, and the actual id
+    /// must be resolved separately via IReadarrClient.FindForeignAuthorIdAsync before adding the author.
+    /// </summary>
+    public string? ForeignAuthorId { get; set; }
+
     public required string AuthorName { get; set; }
 }
 
@@ -54,8 +61,13 @@ internal class ReadarrBookRaw
     [JsonPropertyName("images")]
     public List<ReadarrImageRaw>? Images { get; set; }
 
+    /// <summary>Nested author info -- present on the original Readarr metadata provider, absent on some alternatives.</summary>
     [JsonPropertyName("author")]
     public ReadarrAuthorRaw? Author { get; set; }
+
+    /// <summary>Flattened "authorname title" string used by alternative providers that don't nest author info.</summary>
+    [JsonPropertyName("authorTitle")]
+    public string? AuthorTitle { get; set; }
 }
 
 internal class ReadarrAuthorRaw

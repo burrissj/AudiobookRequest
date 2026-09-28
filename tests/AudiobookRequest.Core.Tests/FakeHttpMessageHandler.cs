@@ -3,20 +3,39 @@ using System.Text;
 
 namespace AudiobookRequest.Core.Tests;
 
-/// <summary>Records the last request and returns a canned response, for testing HTTP clients without a real server.</summary>
-public class FakeHttpMessageHandler(HttpStatusCode statusCode, string responseBody) : HttpMessageHandler
+/// <summary>Records every request and returns canned responses, for testing HTTP clients without a real server.</summary>
+public class FakeHttpMessageHandler : HttpMessageHandler
 {
-    public HttpRequestMessage? LastRequest { get; private set; }
-    public string? LastRequestBody { get; private set; }
+    private readonly Queue<(HttpStatusCode Status, string Body)> _responses;
+    private readonly (HttpStatusCode Status, string Body) _default;
+
+    public FakeHttpMessageHandler(HttpStatusCode statusCode, string responseBody)
+    {
+        _default = (statusCode, responseBody);
+        _responses = new Queue<(HttpStatusCode, string)>();
+    }
+
+    /// <summary>Returns each response in order, one per request; repeats the last one once exhausted.</summary>
+    public FakeHttpMessageHandler(params (HttpStatusCode Status, string Body)[] responses)
+    {
+        _responses = new Queue<(HttpStatusCode, string)>(responses);
+        _default = responses[^1];
+    }
+
+    public List<HttpRequestMessage> Requests { get; } = [];
+    public HttpRequestMessage? LastRequest => Requests.Count > 0 ? Requests[^1] : null;
+    public List<string?> RequestBodies { get; } = [];
+    public string? LastRequestBody => RequestBodies.Count > 0 ? RequestBodies[^1] : null;
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        LastRequest = request;
-        LastRequestBody = request.Content is null ? null : await request.Content.ReadAsStringAsync(cancellationToken);
-        var response = new HttpResponseMessage(statusCode)
+        Requests.Add(request);
+        RequestBodies.Add(request.Content is null ? null : await request.Content.ReadAsStringAsync(cancellationToken));
+
+        var (status, body) = _responses.Count > 0 ? _responses.Dequeue() : _default;
+        return new HttpResponseMessage(status)
         {
-            Content = new StringContent(responseBody, Encoding.UTF8, "application/json")
+            Content = new StringContent(body, Encoding.UTF8, "application/json")
         };
-        return response;
     }
 }

@@ -19,12 +19,22 @@ public class ReadarrClient(HttpClient httpClient) : IReadarrClient
 
         var raw = await response.Content.ReadFromJsonAsync<List<ReadarrBookRaw>>(cancellationToken: ct) ?? [];
         return raw
-            .Where(b => !string.IsNullOrEmpty(b.ForeignBookId) && !string.IsNullOrEmpty(b.Author?.ForeignAuthorId))
+            .Where(b => !string.IsNullOrEmpty(b.ForeignBookId))
             .Select(Map)
             .ToList();
     }
 
-    public async Task<int> EnsureAuthorAsync(string baseUrl, string apiKey, string foreignAuthorId, ReadarrAddAuthorOptions options, CancellationToken ct = default)
+    public async Task<string?> FindForeignAuthorIdAsync(string baseUrl, string apiKey, string authorName, CancellationToken ct = default)
+    {
+        var path = $"/api/v1/author/lookup?term={Uri.EscapeDataString(authorName)}";
+        using var response = await SendAsync(HttpMethod.Get, baseUrl, apiKey, path, ct: ct);
+        response.EnsureSuccessStatusCode();
+
+        var results = await response.Content.ReadFromJsonAsync<List<JsonObject>>(cancellationToken: ct) ?? [];
+        return results.FirstOrDefault()?["foreignAuthorId"]?.GetValue<string>();
+    }
+
+    public async Task<int> EnsureAuthorAsync(string baseUrl, string apiKey, string foreignAuthorId, string authorName, ReadarrAddAuthorOptions options, CancellationToken ct = default)
     {
         using var listResponse = await SendAsync(HttpMethod.Get, baseUrl, apiKey, "/api/v1/author", ct: ct);
         listResponse.EnsureSuccessStatusCode();
@@ -38,6 +48,12 @@ public class ReadarrClient(HttpClient httpClient) : IReadarrClient
         var body = new JsonObject
         {
             ["foreignAuthorId"] = foreignAuthorId,
+            // Some metadata providers leave a field null that Readarr's own author-folder naming
+            // template dereferences unconditionally, crashing its add-author validation with a 500
+            // (NullReferenceException in FileNameBuilder.GetAuthorFolder) rather than a clean error.
+            // Supplying authorName + an explicit path avoids Readarr computing the folder itself.
+            ["authorName"] = authorName,
+            ["path"] = CombineAuthorPath(options.RootFolderPath, authorName),
             ["rootFolderPath"] = options.RootFolderPath,
             ["qualityProfileId"] = options.QualityProfileId,
             ["metadataProfileId"] = options.MetadataProfileId,
@@ -53,6 +69,14 @@ public class ReadarrClient(HttpClient httpClient) : IReadarrClient
         addResponse.EnsureSuccessStatusCode();
         var created = await addResponse.Content.ReadFromJsonAsync<JsonObject>(cancellationToken: ct);
         return created!["id"]!.GetValue<int>();
+    }
+
+    private static string CombineAuthorPath(string rootFolderPath, string authorName)
+    {
+        var invalid = Path.GetInvalidFileNameChars();
+        var sanitized = new string(authorName.Select(c => invalid.Contains(c) ? '_' : c).ToArray()).Trim();
+        var separator = rootFolderPath.Contains('\\') ? '\\' : '/';
+        return rootFolderPath.TrimEnd('/', '\\') + separator + sanitized;
     }
 
     public async Task<int?> FindBookIdAsync(string baseUrl, string apiKey, int authorId, string foreignBookId, CancellationToken ct = default)
@@ -121,17 +145,50 @@ public class ReadarrClient(HttpClient httpClient) : IReadarrClient
     private static ReadarrBookLookupResult Map(ReadarrBookRaw raw)
     {
         var cover = raw.Images?.FirstOrDefault(i => i.CoverType == "cover");
+        var title = raw.Title ?? "Unknown title";
         return new ReadarrBookLookupResult
         {
             ForeignBookId = raw.ForeignBookId!,
-            Title = raw.Title ?? "Unknown title",
+            Title = title,
             Overview = raw.Overview,
             SeriesTitle = raw.SeriesTitle,
             CoverUrl = cover?.RemoteUrl ?? cover?.Url,
             ReleaseDate = raw.ReleaseDate,
-            ForeignAuthorId = raw.Author!.ForeignAuthorId!,
-            AuthorName = raw.Author.AuthorName ?? "Unknown author"
+            // The original Readarr metadata provider nests author info directly; some alternatives
+            // adopted after Readarr's EOL only give a flattened "authorname title" string instead.
+            ForeignAuthorId = raw.Author?.ForeignAuthorId,
+            AuthorName = raw.Author?.AuthorName ?? ExtractAuthorName(raw.AuthorTitle, title)
         };
+    }
+
+    /// <summary>
+    /// Derives a display-ready author name from a provider's flattened "authorname title" string
+    /// (e.g. "weir, andy Project Hail Mary" for title "Project Hail Mary" -> "Andy Weir").
+    /// </summary>
+    private static string ExtractAuthorName(string? authorTitle, string title)
+    {
+        if (string.IsNullOrWhiteSpace(authorTitle))
+        {
+            return "Unknown author";
+        }
+
+        var titleIndex = authorTitle.LastIndexOf(title, StringComparison.OrdinalIgnoreCase);
+        var namePart = (titleIndex >= 0 ? authorTitle[..titleIndex] : authorTitle).Trim();
+        if (namePart.Length == 0)
+        {
+            return "Unknown author";
+        }
+
+        var commaIndex = namePart.IndexOf(',');
+        if (commaIndex > 0)
+        {
+            var last = namePart[..commaIndex].Trim();
+            var first = namePart[(commaIndex + 1)..].Trim();
+            namePart = $"{first} {last}";
+        }
+
+        return string.Join(' ', namePart.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Select(w => char.ToUpperInvariant(w[0]) + w[1..]));
     }
 
     private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string baseUrl, string apiKey, string path, JsonObject? body = null, CancellationToken ct = default)

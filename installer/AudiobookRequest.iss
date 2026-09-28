@@ -3,7 +3,7 @@
 ; the built React client baked into wwwroot, and ffmpeg/ffprobe under tools\.
 
 #define MyAppName "Audiobook Request"
-#define MyAppVersion "0.1.2"
+#define MyAppVersion "0.1.4"
 #define MyAppPublisher "Audiobook Request"
 #define MyAppExeName "AudiobookRequest.Api.exe"
 #define MyServiceName "AudiobookRequest"

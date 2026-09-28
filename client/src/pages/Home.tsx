@@ -61,7 +61,6 @@ export function Home() {
     try {
       const created = await api.post<BookRequestDto>('/api/books/requests', {
         foreignBookId: result.foreignBookId,
-        foreignAuthorId: result.foreignAuthorId,
         title: result.title,
         authorName: result.authorName,
         seriesTitle: result.seriesTitle,

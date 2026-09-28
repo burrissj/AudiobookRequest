@@ -24,7 +24,6 @@ export interface CurrentUser {
 
 export interface BookSearchResult {
   foreignBookId: string
-  foreignAuthorId: string
   title: string
   authorName: string
   seriesTitle: string | null

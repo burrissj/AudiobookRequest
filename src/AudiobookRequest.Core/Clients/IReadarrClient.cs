@@ -8,8 +8,14 @@ public interface IReadarrClient
 
     Task<IReadOnlyList<ReadarrBookLookupResult>> LookupBooksAsync(string baseUrl, string apiKey, string term, CancellationToken ct = default);
 
+    /// <summary>
+    /// Resolves an author's foreign id by name via Readarr's author lookup, for metadata providers that
+    /// don't nest author info directly in book lookup results. Returns the top match, or null if none found.
+    /// </summary>
+    Task<string?> FindForeignAuthorIdAsync(string baseUrl, string apiKey, string authorName, CancellationToken ct = default);
+
     /// <summary>Returns the local Readarr author id for the given foreign author id, adding the author (unmonitored) if it doesn't exist yet.</summary>
-    Task<int> EnsureAuthorAsync(string baseUrl, string apiKey, string foreignAuthorId, ReadarrAddAuthorOptions options, CancellationToken ct = default);
+    Task<int> EnsureAuthorAsync(string baseUrl, string apiKey, string foreignAuthorId, string authorName, ReadarrAddAuthorOptions options, CancellationToken ct = default);
 
     /// <summary>Finds the local Readarr book id for a foreign book id under the given author, or null if Readarr hasn't populated the author's bibliography yet.</summary>
     Task<int?> FindBookIdAsync(string baseUrl, string apiKey, int authorId, string foreignBookId, CancellationToken ct = default);

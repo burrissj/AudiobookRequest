@@ -10,7 +10,6 @@ namespace AudiobookRequest.Api.Endpoints;
 
 public record BookSearchResultDto(
     string ForeignBookId,
-    string ForeignAuthorId,
     string Title,
     string AuthorName,
     string? SeriesTitle,
@@ -19,7 +18,6 @@ public record BookSearchResultDto(
 
 public record CreateBookRequestRequest(
     string ForeignBookId,
-    string ForeignAuthorId,
     string Title,
     string AuthorName,
     string? SeriesTitle,
@@ -50,7 +48,7 @@ public static class BookEndpoints
 
             var results = await readarr.LookupBooksAsync(settings.ReadarrUrl, settings.ReadarrApiKey, term, ct);
             var dtos = results.Select(r => new BookSearchResultDto(
-                r.ForeignBookId, r.ForeignAuthorId, r.Title, r.AuthorName, r.SeriesTitle, r.Overview, r.CoverUrl));
+                r.ForeignBookId, r.Title, r.AuthorName, r.SeriesTitle, r.Overview, r.CoverUrl));
             return Results.Ok(dtos);
         });
 
@@ -86,7 +84,6 @@ public static class BookEndpoints
                 Series = req.SeriesTitle,
                 CoverUrl = req.CoverUrl,
                 ReadarrForeignBookId = req.ForeignBookId,
-                ReadarrForeignAuthorId = req.ForeignAuthorId,
                 Status = BookRequestStatus.Requested
             };
             db.BookRequests.Add(bookRequest);

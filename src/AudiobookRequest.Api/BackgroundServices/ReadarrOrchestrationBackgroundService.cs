@@ -86,12 +86,31 @@ public class ReadarrOrchestrationBackgroundService(
     {
         try
         {
+            // Some metadata providers don't nest the author's foreign id in the book lookup result
+            // (see ReadarrClient.Map) -- resolve it by name the first time we need it, and stick with
+            // whatever we resolve so a later provider hiccup can't change which author we add.
+            if (request.ReadarrForeignAuthorId is null)
+            {
+                request.ReadarrForeignAuthorId = await readarr.FindForeignAuthorIdAsync(settings.ReadarrUrl!, settings.ReadarrApiKey!, request.Author, ct);
+                if (request.ReadarrForeignAuthorId is null)
+                {
+                    if (DateTimeOffset.UtcNow - request.RequestedAt > AddBookTimeout)
+                    {
+                        await FailAsync(request, $"Could not find an author matching '{request.Author}' in Readarr.", db, notifications, ct);
+                    }
+                    return;
+                }
+                // Persist the resolved id right away so we don't re-resolve it every tick while
+                // waiting (below) for Readarr to finish populating the author's bibliography.
+                await db.SaveChangesAsync(ct);
+            }
+
             var authorOptions = new ReadarrAddAuthorOptions(
                 settings.ReadarrRootFolderPath!,
                 settings.ReadarrQualityProfileId ?? 1,
                 settings.ReadarrMetadataProfileId ?? 1);
 
-            var authorId = await readarr.EnsureAuthorAsync(settings.ReadarrUrl!, settings.ReadarrApiKey!, request.ReadarrForeignAuthorId, authorOptions, ct);
+            var authorId = await readarr.EnsureAuthorAsync(settings.ReadarrUrl!, settings.ReadarrApiKey!, request.ReadarrForeignAuthorId, request.Author, authorOptions, ct);
             var bookId = await readarr.FindBookIdAsync(settings.ReadarrUrl!, settings.ReadarrApiKey!, authorId, request.ReadarrForeignBookId, ct);
 
             if (bookId is null)
