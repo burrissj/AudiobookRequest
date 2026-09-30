@@ -45,7 +45,7 @@ builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlite(connect
 builder.Services.AddScoped<SettingsService>();
 
 builder.Services.AddHttpClient<IJellyfinClient, JellyfinClient>();
-builder.Services.AddHttpClient<IReadarrClient, ReadarrClient>();
+builder.Services.AddHttpClient<IChaptarrClient, ChaptarrClient>();
 builder.Services.AddHttpClient<ICoverArtDownloader, CoverArtDownloader>();
 
 builder.Services.AddSingleton<IProcessRunner, ProcessRunner>();
@@ -57,7 +57,7 @@ builder.Services.AddScoped<BookProcessingService>();
 
 builder.Services.AddSignalR();
 builder.Services.AddScoped<INotificationSender, NotificationSender>();
-builder.Services.AddHostedService<ReadarrOrchestrationBackgroundService>();
+builder.Services.AddHostedService<ChaptarrOrchestrationBackgroundService>();
 builder.Services.AddHostedService<LibraryProcessingBackgroundService>();
 builder.Services.AddHostedService<OriginalCleanupBackgroundService>();
 

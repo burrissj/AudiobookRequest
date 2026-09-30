@@ -3,11 +3,9 @@ export interface SetupStatus {
 }
 
 export interface SetupRequest {
-  readarrUrl: string
-  readarrApiKey: string
-  readarrRootFolderPath: string
-  readarrQualityProfileId: number
-  readarrMetadataProfileId: number
+  chaptarrUrl: string
+  chaptarrApiKey: string
+  chaptarrRootFolderPath: string
   jellyfinUrl: string
   jellyfinApiKey: string
   stagingPath: string
@@ -35,7 +33,7 @@ export type BookRequestStatus = 'Requested' | 'Searching' | 'Downloading' | 'Pro
 
 export interface BookRequestDto {
   id: number
-  readarrForeignBookId: string
+  chaptarrForeignBookId: string
   title: string
   author: string
   series: string | null

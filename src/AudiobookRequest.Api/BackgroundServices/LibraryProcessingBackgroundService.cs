@@ -2,7 +2,7 @@ using AudiobookRequest.Api.Services;
 
 namespace AudiobookRequest.Api.BackgroundServices;
 
-/// <summary>Periodically hands any request Readarr has finished importing (Status == Processing) off to BookProcessingService.</summary>
+/// <summary>Periodically hands any request Chaptarr has finished importing (Status == Processing) off to BookProcessingService.</summary>
 public class LibraryProcessingBackgroundService(
     IServiceScopeFactory scopeFactory,
     ILogger<LibraryProcessingBackgroundService> logger) : BackgroundService

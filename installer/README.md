@@ -23,7 +23,7 @@ This produces `installer\Output\AudiobookRequestSetup.exe`.
 - Opens an inbound firewall rule for TCP 5230 (the app listens on `http://0.0.0.0:5230`, i.e. it's
   reachable from other devices on the LAN — phones, etc. — not just localhost).
 - Adds Start Menu / Desktop shortcuts that open the web UI.
-- Does **not** prompt for any app configuration (Readarr/Jellyfin URLs, library paths, ...) — that's
+- Does **not** prompt for any app configuration (Chaptarr/Jellyfin URLs, library paths, ...) — that's
   all handled by the app's own first-run setup wizard at http://localhost:5230 after install.
 
 ## Uninstalling

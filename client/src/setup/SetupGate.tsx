@@ -19,9 +19,8 @@ export function SetupGate({ children }: { children: ReactNode }) {
     return <Navigate to="/setup" replace />
   }
 
-  if (status.setupCompleted && location.pathname === '/setup') {
-    return <Navigate to="/login" replace />
-  }
-
+  // Once completed, /setup is still reachable by direct navigation (e.g. an admin reconfiguring
+  // which Chaptarr instance to use) -- the server enforces that only an authenticated admin can
+  // actually resubmit it at that point. We just stop force-redirecting new visitors there.
   return children
 }

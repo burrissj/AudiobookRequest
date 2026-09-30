@@ -53,7 +53,7 @@ export function Home() {
     return () => clearTimeout(handle)
   }, [term])
 
-  const requestedBookIds = useMemo(() => new Set(requests.map((r) => r.readarrForeignBookId)), [requests])
+  const requestedBookIds = useMemo(() => new Set(requests.map((r) => r.chaptarrForeignBookId)), [requests])
 
   async function requestBook(result: BookSearchResult) {
     setRequesting(result.foreignBookId)

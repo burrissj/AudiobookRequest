@@ -9,11 +9,11 @@ public class AppSettings
 
     public bool SetupCompleted { get; set; }
 
-    public string? ReadarrUrl { get; set; }
-    public string? ReadarrApiKey { get; set; }
-    public string? ReadarrRootFolderPath { get; set; }
-    public int? ReadarrQualityProfileId { get; set; }
-    public int? ReadarrMetadataProfileId { get; set; }
+    public string? ChaptarrUrl { get; set; }
+    public string? ChaptarrApiKey { get; set; }
+    // Quality/metadata profile ids aren't configured here -- Chaptarr's root folders carry their
+    // own audiobook-specific defaults (see IChaptarrClient.FindRootFolderAsync), so we just need the path.
+    public string? ChaptarrRootFolderPath { get; set; }
 
     public string? JellyfinUrl { get; set; }
     public string? JellyfinApiKey { get; set; }

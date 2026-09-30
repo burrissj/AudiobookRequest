@@ -23,6 +23,15 @@ namespace AudiobookRequest.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("ChaptarrApiKey")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ChaptarrRootFolderPath")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ChaptarrUrl")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("JellyfinApiKey")
                         .HasColumnType("TEXT");
 
@@ -38,21 +47,6 @@ namespace AudiobookRequest.Data.Migrations
 
                     b.Property<int>("OriginalRetentionDays")
                         .HasColumnType("INTEGER");
-
-                    b.Property<string>("ReadarrApiKey")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("ReadarrMetadataProfileId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("ReadarrQualityProfileId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("ReadarrRootFolderPath")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ReadarrUrl")
-                        .HasColumnType("TEXT");
 
                     b.Property<int>("ScanIntervalMinutes")
                         .HasColumnType("INTEGER");
@@ -106,20 +100,17 @@ namespace AudiobookRequest.Data.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("ChaptarrBookId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ChaptarrForeignBookId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("CoverUrl")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("FailureReason")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("ReadarrBookId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("ReadarrForeignAuthorId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ReadarrForeignBookId")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTimeOffset?>("ReadyAt")

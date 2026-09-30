@@ -21,16 +21,10 @@ public class BookRequest
     public string? Series { get; set; }
     public string? CoverUrl { get; set; }
 
-    /// <summary>The book id/GUID as returned by Readarr's lookup endpoint (foreignBookId).</summary>
-    public required string ReadarrForeignBookId { get; set; }
-    /// <summary>
-    /// The author id/GUID needed to add the author to Readarr. Populated from the book lookup result
-    /// when the metadata provider nests it there, otherwise resolved lazily (by author name, via
-    /// IReadarrClient.FindForeignAuthorIdAsync) during the Requested -> Searching transition.
-    /// </summary>
-    public string? ReadarrForeignAuthorId { get; set; }
-    /// <summary>Readarr's internal numeric book id, populated once the author/book has been added.</summary>
-    public int? ReadarrBookId { get; set; }
+    /// <summary>The book id as returned by Chaptarr's lookup endpoint (foreignBookId).</summary>
+    public required string ChaptarrForeignBookId { get; set; }
+    /// <summary>Chaptarr's internal numeric book id, populated once the author/book has been added.</summary>
+    public int? ChaptarrBookId { get; set; }
 
     public BookRequestStatus Status { get; set; } = BookRequestStatus.Requested;
     public string? FailureReason { get; set; }

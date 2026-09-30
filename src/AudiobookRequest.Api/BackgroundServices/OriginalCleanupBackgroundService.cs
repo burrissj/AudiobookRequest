@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AudiobookRequest.Api.BackgroundServices;
 
-/// <summary>Daily job: deletes the original files Readarr downloaded once their retention period has passed.</summary>
+/// <summary>Daily job: deletes the original files Chaptarr downloaded once their retention period has passed.</summary>
 public class OriginalCleanupBackgroundService(
     IServiceScopeFactory scopeFactory,
     ILogger<OriginalCleanupBackgroundService> logger) : BackgroundService

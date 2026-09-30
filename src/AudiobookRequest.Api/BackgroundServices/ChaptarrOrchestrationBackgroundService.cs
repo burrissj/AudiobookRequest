@@ -9,14 +9,15 @@ using Microsoft.EntityFrameworkCore;
 namespace AudiobookRequest.Api.BackgroundServices;
 
 /// <summary>
-/// Drives each BookRequest from Requested -> Searching -> Downloading -> Processing by talking to Readarr:
-/// adds/find the author, locates the specific book, monitors + searches it, then watches the queue/history
-/// for progress. Runs far more often than the library scan interval since it's tracking active requests,
-/// not sweeping the filesystem (that's Phase 3's job).
+/// Drives each BookRequest from Requested -> Searching -> Downloading -> Processing by talking to
+/// Chaptarr: adds the author+book in one atomic call (Chaptarr, unlike Readarr, doesn't need a
+/// separate "add author, wait for its bibliography to sync" step), triggers a search, then watches
+/// the queue/history for progress. Runs far more often than the library scan interval since it's
+/// tracking active requests, not sweeping the filesystem (that's the library watcher's job).
 /// </summary>
-public class ReadarrOrchestrationBackgroundService(
+public class ChaptarrOrchestrationBackgroundService(
     IServiceScopeFactory scopeFactory,
-    ILogger<ReadarrOrchestrationBackgroundService> logger) : BackgroundService
+    ILogger<ChaptarrOrchestrationBackgroundService> logger) : BackgroundService
 {
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(20);
     private static readonly TimeSpan AddBookTimeout = TimeSpan.FromMinutes(15);
@@ -33,7 +34,7 @@ public class ReadarrOrchestrationBackgroundService(
             }
             catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
             {
-                logger.LogError(ex, "Readarr orchestration tick failed");
+                logger.LogError(ex, "Chaptarr orchestration tick failed");
             }
         }
     }
@@ -43,11 +44,11 @@ public class ReadarrOrchestrationBackgroundService(
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var settingsService = scope.ServiceProvider.GetRequiredService<SettingsService>();
-        var readarr = scope.ServiceProvider.GetRequiredService<IReadarrClient>();
+        var chaptarr = scope.ServiceProvider.GetRequiredService<IChaptarrClient>();
         var notifications = scope.ServiceProvider.GetRequiredService<INotificationSender>();
 
         var settings = await settingsService.GetAsync(ct);
-        if (string.IsNullOrWhiteSpace(settings.ReadarrUrl) || string.IsNullOrWhiteSpace(settings.ReadarrApiKey))
+        if (string.IsNullOrWhiteSpace(settings.ChaptarrUrl) || string.IsNullOrWhiteSpace(settings.ChaptarrApiKey))
         {
             return;
         }
@@ -66,66 +67,33 @@ public class ReadarrOrchestrationBackgroundService(
         var requested = active.Where(r => r.Status == BookRequestStatus.Requested).ToList();
         foreach (var request in requested)
         {
-            await AdvanceRequestedAsync(request, settings, readarr, db, notifications, ct);
+            await AdvanceRequestedAsync(request, settings, chaptarr, db, notifications, ct);
         }
 
         var inProgress = active.Where(r => r.Status is BookRequestStatus.Searching or BookRequestStatus.Downloading).ToList();
         if (inProgress.Count > 0)
         {
-            await AdvanceInProgressAsync(inProgress, settings, readarr, db, notifications, ct);
+            await AdvanceInProgressAsync(inProgress, settings, chaptarr, db, notifications, ct);
         }
     }
 
     private async Task AdvanceRequestedAsync(
         BookRequest request,
         AppSettings settings,
-        IReadarrClient readarr,
+        IChaptarrClient chaptarr,
         AppDbContext db,
         INotificationSender notifications,
         CancellationToken ct)
     {
         try
         {
-            // Some metadata providers don't nest the author's foreign id in the book lookup result
-            // (see ReadarrClient.Map) -- resolve it by name the first time we need it, and stick with
-            // whatever we resolve so a later provider hiccup can't change which author we add.
-            if (request.ReadarrForeignAuthorId is null)
-            {
-                request.ReadarrForeignAuthorId = await readarr.FindForeignAuthorIdAsync(settings.ReadarrUrl!, settings.ReadarrApiKey!, request.Author, ct);
-                if (request.ReadarrForeignAuthorId is null)
-                {
-                    if (DateTimeOffset.UtcNow - request.RequestedAt > AddBookTimeout)
-                    {
-                        await FailAsync(request, $"Could not find an author matching '{request.Author}' in Readarr.", db, notifications, ct);
-                    }
-                    return;
-                }
-                // Persist the resolved id right away so we don't re-resolve it every tick while
-                // waiting (below) for Readarr to finish populating the author's bibliography.
-                await db.SaveChangesAsync(ct);
-            }
+            var rootFolder = await chaptarr.FindRootFolderAsync(settings.ChaptarrUrl!, settings.ChaptarrApiKey!, settings.ChaptarrRootFolderPath!, ct)
+                ?? throw new InvalidOperationException($"Chaptarr has no root folder configured at '{settings.ChaptarrRootFolderPath}'.");
 
-            var authorOptions = new ReadarrAddAuthorOptions(
-                settings.ReadarrRootFolderPath!,
-                settings.ReadarrQualityProfileId ?? 1,
-                settings.ReadarrMetadataProfileId ?? 1);
+            var bookId = await chaptarr.AddBookAsync(settings.ChaptarrUrl!, settings.ChaptarrApiKey!, request.ChaptarrForeignBookId, rootFolder, ct);
+            await chaptarr.TriggerBookSearchAsync(settings.ChaptarrUrl!, settings.ChaptarrApiKey!, bookId, ct);
 
-            var authorId = await readarr.EnsureAuthorAsync(settings.ReadarrUrl!, settings.ReadarrApiKey!, request.ReadarrForeignAuthorId, request.Author, authorOptions, ct);
-            var bookId = await readarr.FindBookIdAsync(settings.ReadarrUrl!, settings.ReadarrApiKey!, authorId, request.ReadarrForeignBookId, ct);
-
-            if (bookId is null)
-            {
-                if (DateTimeOffset.UtcNow - request.RequestedAt > AddBookTimeout)
-                {
-                    await FailAsync(request, "Readarr never populated this book after adding the author.", db, notifications, ct);
-                }
-                return;
-            }
-
-            await readarr.MarkBookMonitoredAsync(settings.ReadarrUrl!, settings.ReadarrApiKey!, bookId.Value, ct);
-            await readarr.TriggerBookSearchAsync(settings.ReadarrUrl!, settings.ReadarrApiKey!, bookId.Value, ct);
-
-            request.ReadarrBookId = bookId.Value;
+            request.ChaptarrBookId = bookId;
             request.Status = BookRequestStatus.Searching;
             await db.SaveChangesAsync(ct);
             await notifications.RequestUpdatedAsync(BookRequestDto.From(request), ct);
@@ -135,7 +103,7 @@ public class ReadarrOrchestrationBackgroundService(
             logger.LogWarning(ex, "Failed to advance request {RequestId} past Requested", request.Id);
             if (DateTimeOffset.UtcNow - request.RequestedAt > AddBookTimeout)
             {
-                await FailAsync(request, "Repeated errors talking to Readarr while adding this book.", db, notifications, ct);
+                await FailAsync(request, "Repeated errors talking to Chaptarr while adding this book.", db, notifications, ct);
             }
         }
     }
@@ -143,34 +111,34 @@ public class ReadarrOrchestrationBackgroundService(
     private async Task AdvanceInProgressAsync(
         List<BookRequest> requests,
         AppSettings settings,
-        IReadarrClient readarr,
+        IChaptarrClient chaptarr,
         AppDbContext db,
         INotificationSender notifications,
         CancellationToken ct)
     {
-        IReadOnlyList<ReadarrQueueItem> queue;
-        IReadOnlyList<ReadarrHistoryItem> history;
+        IReadOnlyList<ChaptarrQueueItem> queue;
+        IReadOnlyList<ChaptarrHistoryItem> history;
         try
         {
-            queue = await readarr.GetQueueAsync(settings.ReadarrUrl!, settings.ReadarrApiKey!, ct);
+            queue = await chaptarr.GetQueueAsync(settings.ChaptarrUrl!, settings.ChaptarrApiKey!, ct);
             var earliestRequest = requests.Min(r => r.RequestedAt);
-            history = await readarr.GetHistorySinceAsync(settings.ReadarrUrl!, settings.ReadarrApiKey!, earliestRequest, ct);
+            history = await chaptarr.GetHistorySinceAsync(settings.ChaptarrUrl!, settings.ChaptarrApiKey!, earliestRequest, ct);
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to poll Readarr queue/history");
+            logger.LogWarning(ex, "Failed to poll Chaptarr queue/history");
             return;
         }
 
         foreach (var request in requests)
         {
-            var inQueue = queue.Any(q => q.BookId == request.ReadarrBookId);
-            var imported = history.Any(h => h.BookId == request.ReadarrBookId &&
+            var inQueue = queue.Any(q => q.BookId == request.ChaptarrBookId);
+            var imported = history.Any(h => h.BookId == request.ChaptarrBookId &&
                 (h.EventType == "bookFileImported" || h.EventType == "downloadFolderImported"));
 
             if (imported)
             {
-                // Files have landed in Readarr's root folder. The Phase 3 library watcher takes it from here.
+                // Files have landed in Chaptarr's root folder. The library watcher takes it from here.
                 request.Status = BookRequestStatus.Processing;
                 await db.SaveChangesAsync(ct);
                 await notifications.RequestUpdatedAsync(BookRequestDto.From(request), ct);

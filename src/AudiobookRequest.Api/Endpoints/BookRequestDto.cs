@@ -4,7 +4,7 @@ namespace AudiobookRequest.Api.Endpoints;
 
 public record BookRequestDto(
     int Id,
-    string ReadarrForeignBookId,
+    string ChaptarrForeignBookId,
     string Title,
     string Author,
     string? Series,
@@ -16,6 +16,6 @@ public record BookRequestDto(
     DateTimeOffset? ReadyAt)
 {
     public static BookRequestDto From(BookRequest r) => new(
-        r.Id, r.ReadarrForeignBookId, r.Title, r.Author, r.Series, r.CoverUrl, r.Status.ToString(), r.FailureReason,
+        r.Id, r.ChaptarrForeignBookId, r.Title, r.Author, r.Series, r.CoverUrl, r.Status.ToString(), r.FailureReason,
         r.RequestedByUser?.Username ?? "", r.RequestedAt, r.ReadyAt);
 }

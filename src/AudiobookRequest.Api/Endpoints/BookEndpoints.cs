@@ -32,7 +32,7 @@ public static class BookEndpoints
         group.MapGet("/search", async (
             string term,
             SettingsService settingsService,
-            IReadarrClient readarr,
+            IChaptarrClient chaptarr,
             CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(term))
@@ -41,12 +41,12 @@ public static class BookEndpoints
             }
 
             var settings = await settingsService.GetAsync(ct);
-            if (string.IsNullOrWhiteSpace(settings.ReadarrUrl) || string.IsNullOrWhiteSpace(settings.ReadarrApiKey))
+            if (string.IsNullOrWhiteSpace(settings.ChaptarrUrl) || string.IsNullOrWhiteSpace(settings.ChaptarrApiKey))
             {
-                return Results.Problem("Readarr is not configured.", statusCode: 400);
+                return Results.Problem("Chaptarr is not configured.", statusCode: 400);
             }
 
-            var results = await readarr.LookupBooksAsync(settings.ReadarrUrl, settings.ReadarrApiKey, term, ct);
+            var results = await chaptarr.LookupBooksAsync(settings.ChaptarrUrl, settings.ChaptarrApiKey, term, ct);
             var dtos = results.Select(r => new BookSearchResultDto(
                 r.ForeignBookId, r.Title, r.AuthorName, r.SeriesTitle, r.Overview, r.CoverUrl));
             return Results.Ok(dtos);
@@ -70,7 +70,7 @@ public static class BookEndpoints
         {
             var userId = int.Parse(principal.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-            var alreadyRequested = await db.BookRequests.AnyAsync(r => r.ReadarrForeignBookId == req.ForeignBookId, ct);
+            var alreadyRequested = await db.BookRequests.AnyAsync(r => r.ChaptarrForeignBookId == req.ForeignBookId, ct);
             if (alreadyRequested)
             {
                 return Results.Problem("This book has already been requested.", statusCode: 409);
@@ -83,7 +83,7 @@ public static class BookEndpoints
                 Author = req.AuthorName,
                 Series = req.SeriesTitle,
                 CoverUrl = req.CoverUrl,
-                ReadarrForeignBookId = req.ForeignBookId,
+                ChaptarrForeignBookId = req.ForeignBookId,
                 Status = BookRequestStatus.Requested
             };
             db.BookRequests.Add(bookRequest);

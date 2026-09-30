@@ -11,15 +11,15 @@ using Microsoft.EntityFrameworkCore;
 namespace AudiobookRequest.Api.Services;
 
 /// <summary>
-/// Takes a request that Readarr has finished downloading and importing (Status == Processing) and turns
+/// Takes a request that Chaptarr has finished downloading and importing (Status == Processing) and turns
 /// it into a finished library entry: copies the imported files to staging (originals stay untouched in
-/// Readarr's root folder), combines/tags/embeds cover art via ffmpeg, files the result into the library
+/// Chaptarr's root folder), combines/tags/embeds cover art via ffmpeg, files the result into the library
 /// under the configured naming pattern, and flips the request to Ready.
 /// </summary>
 public class BookProcessingService(
     AppDbContext db,
     SettingsService settingsService,
-    IReadarrClient readarr,
+    IChaptarrClient chaptarr,
     IJellyfinClient jellyfin,
     ICoverArtDownloader coverArtDownloader,
     IAudioCombiner audioCombiner,
@@ -29,7 +29,7 @@ public class BookProcessingService(
     public async Task ProcessReadyRequestsAsync(CancellationToken ct)
     {
         var settings = await settingsService.GetAsync(ct);
-        if (string.IsNullOrWhiteSpace(settings.ReadarrUrl) || string.IsNullOrWhiteSpace(settings.ReadarrApiKey)
+        if (string.IsNullOrWhiteSpace(settings.ChaptarrUrl) || string.IsNullOrWhiteSpace(settings.ChaptarrApiKey)
             || string.IsNullOrWhiteSpace(settings.StagingPath) || string.IsNullOrWhiteSpace(settings.LibraryPath))
         {
             return;
@@ -54,16 +54,16 @@ public class BookProcessingService(
 
     private async Task ProcessOneAsync(BookRequest request, AppSettings settings, CancellationToken ct)
     {
-        if (request.ReadarrBookId is null)
+        if (request.ChaptarrBookId is null)
         {
-            logger.LogWarning("Request {RequestId} is Processing but has no ReadarrBookId; skipping", request.Id);
+            logger.LogWarning("Request {RequestId} is Processing but has no ChaptarrBookId; skipping", request.Id);
             return;
         }
 
-        var files = await readarr.GetBookFilesAsync(settings.ReadarrUrl!, settings.ReadarrApiKey!, request.ReadarrBookId.Value, ct);
+        var files = await chaptarr.GetBookFilesAsync(settings.ChaptarrUrl!, settings.ChaptarrApiKey!, request.ChaptarrBookId.Value, ct);
         if (files.Count == 0)
         {
-            // Readarr's history reported an import, but the bookfile API hasn't caught up yet. Retry next tick.
+            // Chaptarr's history reported an import, but the bookfile API hasn't caught up yet. Retry next tick.
             return;
         }
 

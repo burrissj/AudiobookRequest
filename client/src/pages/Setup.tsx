@@ -4,11 +4,9 @@ import { api } from '../api/client'
 import type { SetupRequest } from '../api/types'
 
 const initialForm: SetupRequest = {
-  readarrUrl: '',
-  readarrApiKey: '',
-  readarrRootFolderPath: '',
-  readarrQualityProfileId: 1,
-  readarrMetadataProfileId: 1,
+  chaptarrUrl: '',
+  chaptarrApiKey: '',
+  chaptarrRootFolderPath: '',
   jellyfinUrl: '',
   jellyfinApiKey: '',
   stagingPath: '',
@@ -23,7 +21,7 @@ type TestState = 'idle' | 'testing' | 'ok' | 'failed'
 export function Setup() {
   const navigate = useNavigate()
   const [form, setForm] = useState<SetupRequest>(initialForm)
-  const [readarrTest, setReadarrTest] = useState<TestState>('idle')
+  const [chaptarrTest, setChaptarrTest] = useState<TestState>('idle')
   const [jellyfinTest, setJellyfinTest] = useState<TestState>('idle')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -32,10 +30,10 @@ export function Setup() {
     setForm((f) => ({ ...f, [key]: value }))
   }
 
-  async function testConnection(kind: 'readarr' | 'jellyfin') {
-    const setState = kind === 'readarr' ? setReadarrTest : setJellyfinTest
-    const url = kind === 'readarr' ? form.readarrUrl : form.jellyfinUrl
-    const apiKey = kind === 'readarr' ? form.readarrApiKey : form.jellyfinApiKey
+  async function testConnection(kind: 'chaptarr' | 'jellyfin') {
+    const setState = kind === 'chaptarr' ? setChaptarrTest : setJellyfinTest
+    const url = kind === 'chaptarr' ? form.chaptarrUrl : form.jellyfinUrl
+    const apiKey = kind === 'chaptarr' ? form.chaptarrApiKey : form.jellyfinApiKey
     setState('testing')
     try {
       const result = await api.post<{ success: boolean }>(`/api/setup/test-${kind}`, { url, apiKey })
@@ -62,27 +60,27 @@ export function Setup() {
   return (
     <div className="page setup-page">
       <h1>Welcome — let's get set up</h1>
-      <p className="subtitle">Connect Readarr and Jellyfin, then choose where files live.</p>
+      <p className="subtitle">Connect Chaptarr and Jellyfin, then choose where files live.</p>
 
       <form onSubmit={onSubmit}>
         <fieldset>
-          <legend>Readarr</legend>
+          <legend>Chaptarr</legend>
           <label>
             URL
-            <input value={form.readarrUrl} onChange={(e) => set('readarrUrl', e.target.value)} placeholder="http://readarr-host:8787" required />
+            <input value={form.chaptarrUrl} onChange={(e) => set('chaptarrUrl', e.target.value)} placeholder="http://chaptarr-host:8789" required />
           </label>
           <label>
             API Key
-            <input value={form.readarrApiKey} onChange={(e) => set('readarrApiKey', e.target.value)} required />
+            <input value={form.chaptarrApiKey} onChange={(e) => set('chaptarrApiKey', e.target.value)} required />
           </label>
           <label>
-            Root folder path (as Readarr sees it)
-            <input value={form.readarrRootFolderPath} onChange={(e) => set('readarrRootFolderPath', e.target.value)} placeholder="/audiobooks" required />
+            Root folder path (as Chaptarr sees it)
+            <input value={form.chaptarrRootFolderPath} onChange={(e) => set('chaptarrRootFolderPath', e.target.value)} placeholder="/audiobooks" required />
           </label>
-          <button type="button" onClick={() => testConnection('readarr')} disabled={!form.readarrUrl || !form.readarrApiKey}>
+          <button type="button" onClick={() => testConnection('chaptarr')} disabled={!form.chaptarrUrl || !form.chaptarrApiKey}>
             Test connection
           </button>
-          <TestBadge state={readarrTest} />
+          <TestBadge state={chaptarrTest} />
         </fieldset>
 
         <fieldset>

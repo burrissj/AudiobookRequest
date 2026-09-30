@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using AudiobookRequest.Api.Services;
 using AudiobookRequest.Core.Clients;
 
@@ -6,11 +7,9 @@ namespace AudiobookRequest.Api.Endpoints;
 public record SetupStatusResponse(bool SetupCompleted);
 
 public record SetupRequest(
-    string ReadarrUrl,
-    string ReadarrApiKey,
-    string ReadarrRootFolderPath,
-    int ReadarrQualityProfileId,
-    int ReadarrMetadataProfileId,
+    string ChaptarrUrl,
+    string ChaptarrApiKey,
+    string ChaptarrRootFolderPath,
     string JellyfinUrl,
     string JellyfinApiKey,
     string StagingPath,
@@ -33,23 +32,21 @@ public static class SetupEndpoints
             return Results.Ok(new SetupStatusResponse(settings.SetupCompleted));
         });
 
-        // First run only: once SetupCompleted is true, this endpoint requires Admin (settings edits move
-        // behind auth in Phase 2 alongside the rest of the authenticated app).
-        group.MapPost("/", async (SetupRequest req, SettingsService settingsService, CancellationToken ct) =>
+        // Anonymous on first run (nothing to protect yet); once completed, only a signed-in admin can
+        // resubmit (e.g. to switch Chaptarr instances/providers) rather than anyone on the network.
+        group.MapPost("/", async (SetupRequest req, SettingsService settingsService, ClaimsPrincipal principal, CancellationToken ct) =>
         {
             var current = await settingsService.GetAsync(ct);
-            if (current.SetupCompleted)
+            if (current.SetupCompleted && !principal.IsInRole("Admin"))
             {
-                return Results.Problem("Setup has already been completed.", statusCode: 400);
+                return Results.Problem("Setup has already been completed. Sign in as an admin to change it.", statusCode: 403);
             }
 
             await settingsService.UpdateAsync(s =>
             {
-                s.ReadarrUrl = req.ReadarrUrl;
-                s.ReadarrApiKey = req.ReadarrApiKey;
-                s.ReadarrRootFolderPath = req.ReadarrRootFolderPath;
-                s.ReadarrQualityProfileId = req.ReadarrQualityProfileId;
-                s.ReadarrMetadataProfileId = req.ReadarrMetadataProfileId;
+                s.ChaptarrUrl = req.ChaptarrUrl;
+                s.ChaptarrApiKey = req.ChaptarrApiKey;
+                s.ChaptarrRootFolderPath = req.ChaptarrRootFolderPath;
                 s.JellyfinUrl = req.JellyfinUrl;
                 s.JellyfinApiKey = req.JellyfinApiKey;
                 s.StagingPath = req.StagingPath;
@@ -63,9 +60,9 @@ public static class SetupEndpoints
             return Results.NoContent();
         });
 
-        group.MapPost("/test-readarr", async (TestConnectionRequest req, IReadarrClient readarr, CancellationToken ct) =>
+        group.MapPost("/test-chaptarr", async (TestConnectionRequest req, IChaptarrClient chaptarr, CancellationToken ct) =>
         {
-            var ok = await readarr.TestConnectionAsync(req.Url, req.ApiKey, ct);
+            var ok = await chaptarr.TestConnectionAsync(req.Url, req.ApiKey, ct);
             return Results.Ok(new { success = ok });
         });
 
