@@ -23,7 +23,16 @@ namespace AudiobookRequest.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("AutoFixImports")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("BackupRetentionCount")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("ChaptarrApiKey")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ChaptarrFilePathPrefix")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("ChaptarrRootFolderPath")
@@ -32,7 +41,22 @@ namespace AudiobookRequest.Data.Migrations
                     b.Property<string>("ChaptarrUrl")
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("EnableConversion")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("EnableMoving")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("EnableRenaming")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ImportFolderPath")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("JellyfinApiKey")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("JellyfinPublicUrl")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("JellyfinUrl")
@@ -41,11 +65,50 @@ namespace AudiobookRequest.Data.Migrations
                     b.Property<string>("LibraryPath")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("LocalFilePathPrefix")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("MaxRequestsPerUserPerWeek")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("MinFreeDiskGb")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("NamingPattern")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("NotifyDiscordWebhookUrl")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NotifyNtfyUrl")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("NotifyOnFailed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("NotifyOnNewRelease")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("NotifyOnPendingApproval")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("NotifyOnReady")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("NotifyTelegramBotToken")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NotifyTelegramChatId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NotifyWebhookUrl")
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("OriginalRetentionDays")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("RequireApproval")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("ScanIntervalMinutes")
@@ -54,8 +117,32 @@ namespace AudiobookRequest.Data.Migrations
                     b.Property<bool>("SetupCompleted")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("SmtpFrom")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SmtpHost")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SmtpPassword")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SmtpPort")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SmtpTo")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("SmtpUseSsl")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SmtpUsername")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("StagingPath")
                         .HasColumnType("TEXT");
+
+                    b.Property<int>("WishlistRetryHours")
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -75,6 +162,24 @@ namespace AudiobookRequest.Data.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("NotifyEmail")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NotifyNtfyTopic")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("NotifyOnFailed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("NotifyOnNewRelease")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("NotifyOnReady")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("NotifyTelegramChatId")
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("Role")
                         .HasColumnType("INTEGER");
 
@@ -90,6 +195,104 @@ namespace AudiobookRequest.Data.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("AudiobookRequest.Core.Entities.BookBookmark", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AppUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ClientId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("JellyfinItemId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Label")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("TEXT");
+
+                    b.Property<double>("PositionSeconds")
+                        .HasColumnType("REAL");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AppUserId", "ClientId")
+                        .IsUnique();
+
+                    b.HasIndex("AppUserId", "JellyfinItemId");
+
+                    b.ToTable("BookBookmarks");
+                });
+
+            modelBuilder.Entity("AudiobookRequest.Core.Entities.BookMetadataOverride", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Author")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("JellyfinItemId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("NotInSeries")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Series")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal?>("SeriesNumber")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JellyfinItemId")
+                        .IsUnique();
+
+                    b.ToTable("BookOverrides");
+                });
+
+            modelBuilder.Entity("AudiobookRequest.Core.Entities.BookRating", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AppUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("JellyfinItemId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Stars")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AppUserId", "JellyfinItemId")
+                        .IsUnique();
+
+                    b.ToTable("BookRatings");
+                });
+
             modelBuilder.Entity("AudiobookRequest.Core.Entities.BookRequest", b =>
                 {
                     b.Property<int>("Id")
@@ -98,6 +301,9 @@ namespace AudiobookRequest.Data.Migrations
 
                     b.Property<string>("Author")
                         .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("AutoFixAttemptedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<int?>("ChaptarrBookId")
@@ -110,10 +316,31 @@ namespace AudiobookRequest.Data.Migrations
                     b.Property<string>("CoverUrl")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("DiagnosticMessage")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DownloadClientName")
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("DownloadProgressPercent")
+                        .HasColumnType("REAL");
+
+                    b.Property<double?>("DownloadSizeBytes")
+                        .HasColumnType("REAL");
+
+                    b.Property<double?>("DownloadSizeLeftBytes")
+                        .HasColumnType("REAL");
+
                     b.Property<string>("FailureReason")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTimeOffset?>("LastSearchAt")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTimeOffset?>("ReadyAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("ReleaseDate")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTimeOffset>("RequestedAt")
@@ -125,7 +352,136 @@ namespace AudiobookRequest.Data.Migrations
                     b.Property<string>("Series")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTimeOffset?>("SnatchedAt")
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Wishlisted")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RequestedByUserId");
+
+                    b.ToTable("BookRequests");
+                });
+
+            modelBuilder.Entity("AudiobookRequest.Core.Entities.BookTag", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AppUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("JellyfinItemId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Tag")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TagKey")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AppUserId", "TagKey");
+
+                    b.HasIndex("AppUserId", "JellyfinItemId", "TagKey")
+                        .IsUnique();
+
+                    b.ToTable("BookTags");
+                });
+
+            modelBuilder.Entity("AudiobookRequest.Core.Entities.Follow", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AppUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("AutoRequest")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("KnownAsinsJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("LastCheckedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SeriesAsin")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SeriesAuthor")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AppUserId", "Kind", "Name")
+                        .IsUnique();
+
+                    b.ToTable("Follows");
+                });
+
+            modelBuilder.Entity("AudiobookRequest.Core.Entities.FollowFind", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Asin")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Author")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("AutoRequestedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CoverUrl")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Dismissed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("FollowId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset>("FoundAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ReleaseDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("RuntimeMinutes")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Title")
@@ -134,9 +490,131 @@ namespace AudiobookRequest.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RequestedByUserId");
+                    b.HasIndex("FollowId", "Asin")
+                        .IsUnique();
 
-                    b.ToTable("BookRequests");
+                    b.ToTable("FollowFinds");
+                });
+
+            modelBuilder.Entity("AudiobookRequest.Core.Entities.ImportedSource", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Author")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FinalPath")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("ImportedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceKey")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourcePath")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SourceKey")
+                        .IsUnique();
+
+                    b.ToTable("ImportedSources");
+                });
+
+            modelBuilder.Entity("AudiobookRequest.Core.Entities.LibraryBookCache", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Artists")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Author")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("JellyfinItemId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("RefreshedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SeriesAsin")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("SeriesCheckedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SeriesName")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SeriesSequence")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JellyfinItemId")
+                        .IsUnique();
+
+                    b.ToTable("LibraryBooks");
+                });
+
+            modelBuilder.Entity("AudiobookRequest.Core.Entities.ListeningDay", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AppUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Author")
+                        .HasColumnType("TEXT");
+
+                    b.Property<double>("ContentSeconds")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("Day")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("JellyfinItemId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<double>("WallSeconds")
+                        .HasColumnType("REAL");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AppUserId", "Day", "JellyfinItemId")
+                        .IsUnique();
+
+                    b.ToTable("ListeningDays");
                 });
 
             modelBuilder.Entity("AudiobookRequest.Core.Entities.ListeningHistoryCache", b =>
@@ -219,6 +697,28 @@ namespace AudiobookRequest.Data.Migrations
                     b.ToTable("ProcessedBooks");
                 });
 
+            modelBuilder.Entity("AudiobookRequest.Core.Entities.BookBookmark", b =>
+                {
+                    b.HasOne("AudiobookRequest.Core.Entities.AppUser", "AppUser")
+                        .WithMany()
+                        .HasForeignKey("AppUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AppUser");
+                });
+
+            modelBuilder.Entity("AudiobookRequest.Core.Entities.BookRating", b =>
+                {
+                    b.HasOne("AudiobookRequest.Core.Entities.AppUser", "AppUser")
+                        .WithMany()
+                        .HasForeignKey("AppUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AppUser");
+                });
+
             modelBuilder.Entity("AudiobookRequest.Core.Entities.BookRequest", b =>
                 {
                     b.HasOne("AudiobookRequest.Core.Entities.AppUser", "RequestedByUser")
@@ -228,6 +728,50 @@ namespace AudiobookRequest.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("RequestedByUser");
+                });
+
+            modelBuilder.Entity("AudiobookRequest.Core.Entities.BookTag", b =>
+                {
+                    b.HasOne("AudiobookRequest.Core.Entities.AppUser", "AppUser")
+                        .WithMany()
+                        .HasForeignKey("AppUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AppUser");
+                });
+
+            modelBuilder.Entity("AudiobookRequest.Core.Entities.Follow", b =>
+                {
+                    b.HasOne("AudiobookRequest.Core.Entities.AppUser", "AppUser")
+                        .WithMany()
+                        .HasForeignKey("AppUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AppUser");
+                });
+
+            modelBuilder.Entity("AudiobookRequest.Core.Entities.FollowFind", b =>
+                {
+                    b.HasOne("AudiobookRequest.Core.Entities.Follow", "Follow")
+                        .WithMany("Finds")
+                        .HasForeignKey("FollowId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Follow");
+                });
+
+            modelBuilder.Entity("AudiobookRequest.Core.Entities.ListeningDay", b =>
+                {
+                    b.HasOne("AudiobookRequest.Core.Entities.AppUser", "AppUser")
+                        .WithMany()
+                        .HasForeignKey("AppUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AppUser");
                 });
 
             modelBuilder.Entity("AudiobookRequest.Core.Entities.ListeningHistoryCache", b =>
@@ -258,6 +802,11 @@ namespace AudiobookRequest.Data.Migrations
             modelBuilder.Entity("AudiobookRequest.Core.Entities.BookRequest", b =>
                 {
                     b.Navigation("ProcessedBook");
+                });
+
+            modelBuilder.Entity("AudiobookRequest.Core.Entities.Follow", b =>
+                {
+                    b.Navigation("Finds");
                 });
 #pragma warning restore 612, 618
         }

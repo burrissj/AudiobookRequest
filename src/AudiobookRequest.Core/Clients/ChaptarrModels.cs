@@ -12,16 +12,46 @@ public class ChaptarrBookLookupResult
     public string? CoverUrl { get; set; }
     public DateTimeOffset? ReleaseDate { get; set; }
     public required string AuthorName { get; set; }
+    public double? RatingValue { get; set; }
+    public int? RatingVotes { get; set; }
 }
 
 /// <summary>A Chaptarr root folder, carrying its own audiobook quality/metadata profile defaults.</summary>
 public record ChaptarrRootFolder(string Path, int AudiobookQualityProfileId, int AudiobookMetadataProfileId);
 
-public record ChaptarrQueueItem(string? Title, int? BookId, string Status, double SizeLeftBytes);
+public record ChaptarrQueueItem(
+    string? Title, int? BookId, string Status, double SizeBytes, double SizeLeftBytes, string? DownloadClient,
+    string? TrackedDownloadStatus = null, string? TrackedDownloadState = null, string? ErrorMessage = null,
+    IReadOnlyList<string>? Messages = null, string? DownloadId = null);
 
-public record ChaptarrHistoryItem(int? BookId, string EventType, DateTimeOffset Date);
+public record ChaptarrHistoryItem(int? BookId, string EventType, DateTimeOffset Date, string? Message = null);
 
 public record ChaptarrBookFile(int Id, int BookId, string Path);
+
+/// <summary>
+/// A downloaded file Chaptarr is holding for manual import, with the book it matched on its own.
+/// <paramref name="Raw"/> is Chaptarr's full record, kept so the import call can send its quality and
+/// flags back untouched.
+/// </summary>
+public record ChaptarrImportCandidate(
+    string Path,
+    string Name,
+    long SizeBytes,
+    int? MatchedBookId,
+    string? MatchedBookTitle,
+    int? MatchedAuthorId,
+    IReadOnlyList<string> Rejections,
+    System.Text.Json.Nodes.JsonObject Raw);
+
+public record ChaptarrEditionInfo(int Id, bool IsEbook, bool Monitored);
+
+public record ChaptarrBookInfo(int Id, string Title, int AuthorId, IReadOnlyList<ChaptarrEditionInfo> Editions);
+
+public record ChaptarrCommandStatus(int Id, string Status, string? Result, string? Message)
+{
+    public bool IsFinished => Status is "completed" or "failed" or "aborted" or "cancelled" or "orphaned";
+    public bool Succeeded => Status == "completed" && !string.Equals(Result, "unsuccessful", StringComparison.OrdinalIgnoreCase);
+}
 
 internal class ChaptarrBookRaw
 {
@@ -48,6 +78,18 @@ internal class ChaptarrBookRaw
 
     [JsonPropertyName("author")]
     public ChaptarrAuthorRaw? Author { get; set; }
+
+    [JsonPropertyName("ratings")]
+    public ChaptarrRatingsRaw? Ratings { get; set; }
+}
+
+internal class ChaptarrRatingsRaw
+{
+    [JsonPropertyName("votes")]
+    public int Votes { get; set; }
+
+    [JsonPropertyName("value")]
+    public double Value { get; set; }
 }
 
 internal class ChaptarrAuthorRaw
@@ -97,8 +139,35 @@ internal class ChaptarrQueueRecordRaw
     [JsonPropertyName("status")]
     public string? Status { get; set; }
 
+    [JsonPropertyName("size")]
+    public double Size { get; set; }
+
     [JsonPropertyName("sizeleft")]
     public double SizeLeft { get; set; }
+
+    [JsonPropertyName("downloadClient")]
+    public string? DownloadClient { get; set; }
+
+    [JsonPropertyName("trackedDownloadStatus")]
+    public string? TrackedDownloadStatus { get; set; }
+
+    [JsonPropertyName("trackedDownloadState")]
+    public string? TrackedDownloadState { get; set; }
+
+    [JsonPropertyName("errorMessage")]
+    public string? ErrorMessage { get; set; }
+
+    [JsonPropertyName("downloadId")]
+    public string? DownloadId { get; set; }
+
+    [JsonPropertyName("statusMessages")]
+    public List<ChaptarrStatusMessageRaw>? StatusMessages { get; set; }
+}
+
+internal class ChaptarrStatusMessageRaw
+{
+    [JsonPropertyName("messages")]
+    public List<string>? Messages { get; set; }
 }
 
 internal class ChaptarrHistoryRecordRaw
@@ -111,6 +180,10 @@ internal class ChaptarrHistoryRecordRaw
 
     [JsonPropertyName("date")]
     public DateTimeOffset Date { get; set; }
+
+    // Values are strings in practice but typed loosely so one odd record can't fail the whole page.
+    [JsonPropertyName("data")]
+    public Dictionary<string, System.Text.Json.JsonElement>? Data { get; set; }
 }
 
 internal class ChaptarrHistoryResponse

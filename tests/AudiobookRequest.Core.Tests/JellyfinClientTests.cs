@@ -50,4 +50,17 @@ public class JellyfinClientTests
         Assert.False(handler.LastRequest.Headers.Contains("X-Emby-Authorization"));
         Assert.Contains("MediaBrowser", handler.LastRequest.Headers.GetValues("Authorization").Single());
     }
+
+    [Fact]
+    public async Task AuthenticateAsync_WithADevice_SendsItsIdAndName()
+    {
+        var handler = new FakeHttpMessageHandler(HttpStatusCode.OK, """{"AccessToken":"t","User":{"Id":"u","Name":"alice"}}""");
+        var client = new JellyfinClient(new HttpClient(handler), NullLogger<JellyfinClient>.Instance);
+
+        await client.AuthenticateAsync("http://jellyfin:8096", "alice", "secret", default, new JellyfinDevice("abr-0123456789abcdef01234567", "Safari on iPhone"));
+
+        var header = handler.LastRequest!.Headers.GetValues("Authorization").Single();
+        Assert.Contains("DeviceId=\"abr-0123456789abcdef01234567\"", header);
+        Assert.Contains("Device=\"Safari on iPhone\"", header);
+    }
 }

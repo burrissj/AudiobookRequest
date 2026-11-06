@@ -31,10 +31,15 @@ Write-Host "==> Copying client build into wwwroot..." -ForegroundColor Cyan
 if (Test-Path $wwwroot) { Remove-Item $wwwroot -Recurse -Force }
 Copy-Item (Join-Path $clientDir "dist") $wwwroot -Recurse
 
-Write-Host "==> Publishing self-contained win-x64..." -ForegroundColor Cyan
+# One source of truth for the version: the installer script. The app reports it on the Admin tab.
+$issText = Get-Content (Join-Path $root "installer\AudiobookRequest.iss") -Raw
+if ($issText -notmatch '#define MyAppVersion "([^"]+)"') { throw "Could not read MyAppVersion from installer\AudiobookRequest.iss" }
+$version = $Matches[1]
+
+Write-Host "==> Publishing self-contained win-x64 (version $version)..." -ForegroundColor Cyan
 if (Test-Path $publishDir) { Remove-Item $publishDir -Recurse -Force }
 dotnet publish $apiDir -c Release -r win-x64 --self-contained true `
-    -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
+    -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=$version `
     -o $publishDir
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed" }
 

@@ -2,7 +2,7 @@ namespace AudiobookRequest.Core.Audio;
 
 public class FfmpegAudioCombiner(IProcessRunner processRunner, string ffmpegPath = "ffmpeg", string ffprobePath = "ffprobe") : IAudioCombiner
 {
-    public async Task CombineAsync(IReadOnlyList<string> sourceFiles, string outputPath, BookTags tags, string? coverImagePath, CancellationToken ct = default)
+    public async Task CombineAsync(IReadOnlyList<string> sourceFiles, string outputPath, BookTags tags, string? coverImagePath, bool embedTags = true, CancellationToken ct = default, bool requireAac = false)
     {
         if (sourceFiles.Count == 0)
         {
@@ -14,7 +14,7 @@ public class FfmpegAudioCombiner(IProcessRunner processRunner, string ffmpegPath
         try
         {
             var intermediatePath = Path.Combine(workDir, "combined.m4b");
-            await ConcatOrCopyAsync(sourceFiles, intermediatePath, ct);
+            await ConcatOrCopyAsync(sourceFiles, intermediatePath, requireAac, ct);
 
             string? chaptersPath = null;
             if (sourceFiles.Count > 1)
@@ -29,7 +29,7 @@ public class FfmpegAudioCombiner(IProcessRunner processRunner, string ffmpegPath
                 await File.WriteAllTextAsync(chaptersPath, FfmpegMetadataBuilder.BuildChapters(durations), ct);
             }
 
-            await RemuxWithMetadataAsync(intermediatePath, outputPath, tags, chaptersPath, coverImagePath, ct);
+            await RemuxWithMetadataAsync(intermediatePath, outputPath, tags, chaptersPath, coverImagePath, embedTags, ct);
         }
         finally
         {
@@ -64,11 +64,15 @@ public class FfmpegAudioCombiner(IProcessRunner processRunner, string ffmpegPath
         return (parts.ElementAtOrDefault(0) ?? "", parts.ElementAtOrDefault(1) ?? "", parts.ElementAtOrDefault(2) ?? "");
     }
 
-    private async Task ConcatOrCopyAsync(IReadOnlyList<string> sourceFiles, string outputPath, CancellationToken ct)
+    // Codecs that belong in an .m4b as they are.
+    private static bool IsMp4Audio(string codec) => codec is "aac" or "alac";
+
+    private async Task ConcatOrCopyAsync(IReadOnlyList<string> sourceFiles, string outputPath, bool requireAac, CancellationToken ct)
     {
         if (sourceFiles.Count == 1)
         {
-            if (await TryRunFfmpegAsync(BuildSingleFileArgs(sourceFiles[0], outputPath, reencode: false), outputPath, ct))
+            var mustReencode = requireAac && !IsMp4Audio((await GetAudioStreamInfoAsync(sourceFiles[0], ct)).Codec.ToLowerInvariant());
+            if (!mustReencode && await TryRunFfmpegAsync(BuildSingleFileArgs(sourceFiles[0], outputPath, reencode: false), outputPath, ct))
             {
                 return;
             }
@@ -86,7 +90,7 @@ public class FfmpegAudioCombiner(IProcessRunner processRunner, string ffmpegPath
         {
             infos.Add(await GetAudioStreamInfoAsync(file, ct));
         }
-        var canCopy = infos.Distinct().Count() == 1;
+        var canCopy = infos.Distinct().Count() == 1 && !(requireAac && infos.Any(i => !IsMp4Audio(i.Codec.ToLowerInvariant())));
 
         var concatListPath = outputPath + ".concat.txt";
         await File.WriteAllTextAsync(concatListPath, FfmpegMetadataBuilder.BuildConcatList(sourceFiles), ct);
@@ -104,7 +108,7 @@ public class FfmpegAudioCombiner(IProcessRunner processRunner, string ffmpegPath
         }
         finally
         {
-            File.Delete(concatListPath);
+            try { File.Delete(concatListPath); } catch (IOException) { /* still held by a stopped ffmpeg; the work folder is cleared later */ }
         }
     }
 
@@ -138,7 +142,7 @@ public class FfmpegAudioCombiner(IProcessRunner processRunner, string ffmpegPath
         return result.Success && File.Exists(expectedOutputPath);
     }
 
-    private async Task RemuxWithMetadataAsync(string inputPath, string outputPath, BookTags tags, string? chaptersPath, string? coverImagePath, CancellationToken ct)
+    private async Task RemuxWithMetadataAsync(string inputPath, string outputPath, BookTags tags, string? chaptersPath, string? coverImagePath, bool embedTags, CancellationToken ct)
     {
         var args = new List<string> { "-y", "-i", inputPath };
         var nextInputIndex = 1;
@@ -150,7 +154,7 @@ public class FfmpegAudioCombiner(IProcessRunner processRunner, string ffmpegPath
             args.AddRange(["-f", "ffmetadata", "-i", chaptersPath]);
             metadataInputIndex = nextInputIndex++;
         }
-        if (coverImagePath is not null)
+        if (coverImagePath is not null && embedTags)
         {
             args.AddRange(["-i", coverImagePath]);
             coverInputIndex = nextInputIndex++;
@@ -172,11 +176,14 @@ public class FfmpegAudioCombiner(IProcessRunner processRunner, string ffmpegPath
             args.AddRange(["-c:v", "mjpeg", "-disposition:v:0", "attached_pic"]);
         }
 
-        args.AddRange(["-metadata", $"title={tags.Title}"]);
-        args.AddRange(["-metadata", $"artist={tags.Author}"]);
-        args.AddRange(["-metadata", $"album_artist={tags.Author}"]);
-        args.AddRange(["-metadata", $"album={tags.Series ?? tags.Title}"]);
-        args.AddRange(["-metadata", "genre=Audiobook"]);
+        if (embedTags)
+        {
+            args.AddRange(["-metadata", $"title={tags.Title}"]);
+            args.AddRange(["-metadata", $"artist={tags.Author}"]);
+            args.AddRange(["-metadata", $"album_artist={tags.Author}"]);
+            args.AddRange(["-metadata", $"album={tags.Series ?? tags.Title}"]);
+            args.AddRange(["-metadata", "genre=Audiobook"]);
+        }
 
         args.Add(outputPath);
 

@@ -19,10 +19,10 @@ public class JellyfinClient(HttpClient httpClient, ILogger<JellyfinClient> logge
     // than relying on JsonContent.Create's ambient default, which serializes anonymous types as camelCase.
     private static readonly JsonSerializerOptions PascalCaseOptions = new() { PropertyNamingPolicy = null };
 
-    public async Task<JellyfinAuthResult?> AuthenticateAsync(string baseUrl, string username, string password, CancellationToken ct = default)
+    public async Task<JellyfinAuthResult?> AuthenticateAsync(string baseUrl, string username, string password, CancellationToken ct = default, JellyfinDevice? device = null)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, Combine(baseUrl, "/Users/authenticatebyname"));
-        request.Headers.TryAddWithoutValidation("Authorization", DeviceHeader);
+        request.Headers.TryAddWithoutValidation("Authorization", device is null ? DeviceHeader : JellyfinHeaders.ForLogin(device));
         request.Content = JsonContent.Create(new { Username = username, Pw = password }, options: PascalCaseOptions);
 
         using var response = await httpClient.SendAsync(request, ct);
@@ -46,6 +46,31 @@ public class JellyfinClient(HttpClient httpClient, ILogger<JellyfinClient> logge
     public async Task<IReadOnlyList<JellyfinPlayedItem>> GetPlayedItemsAsync(string baseUrl, string apiKey, string userId, CancellationToken ct = default)
     {
         var path = $"/Users/{userId}/Items?Filters=IsPlayed&SortBy=DatePlayed&SortOrder=Descending&Recursive=true&IncludeItemTypes=Audio,Book&Fields=UserData,Genres";
+        using var request = AuthorizedRequest(HttpMethod.Get, baseUrl, path, apiKey);
+        using var response = await httpClient.SendAsync(request, ct);
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<JellyfinItemsResponse>(cancellationToken: ct);
+        return result?.Items ?? [];
+    }
+
+    public async Task<IReadOnlyList<JellyfinPlayedItem>> GetLibraryAudiobooksAsync(string baseUrl, string apiKey, CancellationToken ct = default)
+    {
+        // Confirmed live: Jellyfin's actual item type for audiobooks is "AudioBook" (not "Audio"/"Book"),
+        // and this works server-wide with Recursive=true + no ParentId -- no need to resolve a specific
+        // library folder first.
+        var path = "/Items?IncludeItemTypes=AudioBook&Recursive=true&Fields=Genres,ArtistItems";
+        using var request = AuthorizedRequest(HttpMethod.Get, baseUrl, path, apiKey);
+        using var response = await httpClient.SendAsync(request, ct);
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<JellyfinItemsResponse>(cancellationToken: ct);
+        return result?.Items ?? [];
+    }
+
+    public async Task<IReadOnlyList<JellyfinPlayedItem>> SearchAudiobooksAsync(string baseUrl, string apiKey, string term, CancellationToken ct = default)
+    {
+        var path = $"/Items?IncludeItemTypes=AudioBook&Recursive=true&Limit=10&Fields=ArtistItems&SearchTerm={Uri.EscapeDataString(term)}";
         using var request = AuthorizedRequest(HttpMethod.Get, baseUrl, path, apiKey);
         using var response = await httpClient.SendAsync(request, ct);
         response.EnsureSuccessStatusCode();

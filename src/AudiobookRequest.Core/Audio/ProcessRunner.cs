@@ -28,8 +28,35 @@ public class ProcessRunner : IProcessRunner
         process.Start();
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
-        await process.WaitForExitAsync(ct);
+        try
+        {
+            await process.WaitForExitAsync(ct);
+        }
+        catch (OperationCanceledException)
+        {
+            // Giving up waiting doesn't stop the program: left alone, ffmpeg would carry on encoding (and keep its files
+            // locked) long after the caller thinks it was cancelled.
+            await StopAsync(process);
+            throw;
+        }
 
         return new ProcessResult(process.ExitCode, stdout.ToString(), stderr.ToString());
+    }
+
+    private static async Task StopAsync(Process process)
+    {
+        try
+        {
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+            }
+            // Wait until it has really gone, so the caller can safely tidy up the files it was using.
+            await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(10));
+        }
+        catch (Exception)
+        {
+            // Already gone, or can't be stopped: nothing more to do here.
+        }
     }
 }

@@ -1,21 +1,28 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
-import { api } from '../api/client'
-import type { SetupStatus } from '../api/types'
+import { ConnectionProblem } from '../components/ConnectionProblem'
+import { useSetup } from './useSetup'
 
 export function SetupGate({ children }: { children: ReactNode }) {
   const location = useLocation()
-  const [status, setStatus] = useState<SetupStatus | null>(null)
+  const { setupCompleted, loading, problem, retry } = useSetup()
+  const [retrying, setRetrying] = useState(false)
 
-  useEffect(() => {
-    api.get<SetupStatus>('/api/setup/status').then(setStatus)
-  }, [])
-
-  if (status === null) {
+  if (loading) {
     return <div className="page">Loading…</div>
   }
 
-  if (!status.setupCompleted && location.pathname !== '/setup') {
+  // The server couldn't be asked. That says nothing about whether setup is done, so don't guess: say so and keep trying.
+  if (problem) {
+    const onRetry = () => {
+      setRetrying(true)
+      retry()
+      window.setTimeout(() => setRetrying(false), 800)
+    }
+    return <ConnectionProblem problem={problem} retrying={retrying} onRetry={onRetry} />
+  }
+
+  if (!setupCompleted && location.pathname !== '/setup') {
     return <Navigate to="/setup" replace />
   }
 

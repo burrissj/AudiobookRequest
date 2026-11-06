@@ -20,6 +20,8 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Overridden at publish time with the installer's version (scripts/publish.ps1). -->
+    <Version>0.0.0-dev</Version>
   </PropertyGroup>
 
 </Project>

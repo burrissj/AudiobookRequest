@@ -26,4 +26,22 @@ public interface IChaptarrClient
 
     /// <summary>The actual file(s) Chaptarr imported for a book, as absolute paths on disk under the configured root folder.</summary>
     Task<IReadOnlyList<ChaptarrBookFile>> GetBookFilesAsync(string baseUrl, string apiKey, int bookId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Removes a book from Chaptarr entirely (unmonitors it and stops any in-progress search/download) --
+    /// used when cancelling a request, so a fresh request for the same book doesn't collide with a
+    /// leftover Chaptarr entry. Never deletes files on disk.
+    /// </summary>
+    Task DeleteBookAsync(string baseUrl, string apiKey, int bookId, CancellationToken ct = default);
+
+    /// <summary>The files of a completed download that Chaptarr is holding for manual import, each with the book it matched.</summary>
+    Task<IReadOnlyList<ChaptarrImportCandidate>> GetManualImportCandidatesAsync(string baseUrl, string apiKey, string downloadId, CancellationToken ct = default);
+
+    /// <summary>A book's id/author and its editions, or null if Chaptarr no longer has it.</summary>
+    Task<ChaptarrBookInfo?> GetBookInfoAsync(string baseUrl, string apiKey, int bookId, CancellationToken ct = default);
+
+    /// <summary>Queues Chaptarr's ManualImport command for the given files and returns the command id to poll.</summary>
+    Task<int> StartManualImportAsync(string baseUrl, string apiKey, IReadOnlyList<System.Text.Json.Nodes.JsonObject> files, string importMode, CancellationToken ct = default);
+
+    Task<ChaptarrCommandStatus> GetCommandStatusAsync(string baseUrl, string apiKey, int commandId, CancellationToken ct = default);
 }

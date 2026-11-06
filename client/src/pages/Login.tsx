@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../auth/AuthContext'
+import { ApiError } from '../api/client'
+import { useAuth } from '../auth/useAuth'
 
 export function Login() {
   const { login } = useAuth()
@@ -17,8 +18,15 @@ export function Login() {
     try {
       await login(username, password)
       navigate('/', { replace: true })
-    } catch {
-      setError('Invalid username or password')
+    } catch (err) {
+      // Only a 401 means the credentials were wrong; anything else is a connection or server problem.
+      setError(
+        err instanceof ApiError
+          ? err.status === 401
+            ? 'Invalid username or password'
+            : err.message || 'Sign-in failed'
+          : "Couldn't reach the server. Check your connection and try again.",
+      )
     } finally {
       setSubmitting(false)
     }
@@ -31,11 +39,27 @@ export function Login() {
       <form onSubmit={onSubmit}>
         <label>
           Username
-          <input value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" required />
+          <input
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            autoComplete="username"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            enterKeyHint="next"
+            required
+          />
         </label>
         <label>
           Password
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+            enterKeyHint="go"
+            required
+          />
         </label>
         {error && <p className="error">{error}</p>}
         <button type="submit" className="primary" disabled={submitting}>

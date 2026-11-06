@@ -1,3 +1,4 @@
+using AudiobookRequest.Api.Services;
 using System.Text.Json;
 using AudiobookRequest.Data;
 using Microsoft.EntityFrameworkCore;
@@ -7,8 +8,10 @@ namespace AudiobookRequest.Api.BackgroundServices;
 /// <summary>Daily job: deletes the original files Chaptarr downloaded once their retention period has passed.</summary>
 public class OriginalCleanupBackgroundService(
     IServiceScopeFactory scopeFactory,
+    BackgroundJobStatus jobStatus,
     ILogger<OriginalCleanupBackgroundService> logger) : BackgroundService
 {
+    public const string JobName = "Original file cleanup";
     private static readonly TimeSpan Interval = TimeSpan.FromHours(24);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -19,10 +22,12 @@ public class OriginalCleanupBackgroundService(
             try
             {
                 await RunOnceAsync(stoppingToken);
+                jobStatus.Success(JobName);
             }
             catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
             {
                 logger.LogError(ex, "Original cleanup pass failed");
+                jobStatus.Failure(JobName, ex);
             }
         } while (await timer.WaitForNextTickAsync(stoppingToken));
     }

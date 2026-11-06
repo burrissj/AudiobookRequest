@@ -21,3 +21,6 @@ installer/Output/
 # OS
 .DS_Store
 Thumbs.db
+
+# Logs (e.g. installer/install.log from a test install)
+*.log

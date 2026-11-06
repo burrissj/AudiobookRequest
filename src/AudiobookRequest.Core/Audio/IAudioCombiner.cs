@@ -6,5 +6,9 @@ namespace AudiobookRequest.Core.Audio;
 /// </summary>
 public interface IAudioCombiner
 {
-    Task CombineAsync(IReadOnlyList<string> sourceFiles, string outputPath, BookTags tags, string? coverImagePath, CancellationToken ct = default);
+    /// <param name="requireAac">
+    /// Make sure the audio in the result is AAC. Without it, MP3 and other sources are copied into the .m4b as they are,
+    /// which plays on most things but isn't a proper audiobook file; with it, anything that isn't already AAC/ALAC is re-encoded.
+    /// </param>
+    Task CombineAsync(IReadOnlyList<string> sourceFiles, string outputPath, BookTags tags, string? coverImagePath, bool embedTags = true, CancellationToken ct = default, bool requireAac = false);
 }

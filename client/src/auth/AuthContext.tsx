@@ -1,31 +1,36 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { api, ApiError } from '../api/client'
+import { describeConnectionProblem, type ConnectionProblemInfo } from '../api/connection'
 import type { CurrentUser } from '../api/types'
-
-interface AuthContextValue {
-  user: CurrentUser | null
-  loading: boolean
-  login: (username: string, password: string) => Promise<void>
-  logout: () => Promise<void>
-}
-
-const AuthContext = createContext<AuthContextValue | undefined>(undefined)
+import { AuthContext } from './useAuth'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<CurrentUser | null>(null)
   const [loading, setLoading] = useState(true)
+  const [problem, setProblem] = useState<ConnectionProblemInfo | null>(null)
 
-  useEffect(() => {
+  const load = useCallback(() => {
     api
       .get<CurrentUser>('/api/auth/me')
-      .then(setUser)
+      .then((u) => {
+        setUser(u)
+        setProblem(null)
+      })
       .catch((err) => {
-        if (!(err instanceof ApiError && err.status === 401)) {
-          console.error(err)
+        if (err instanceof ApiError && err.status === 401) {
+          setUser(null)
+          setProblem(null)
+        } else {
+          // Unreachable is not the same as signed out: don't send someone to the login page over a bad connection.
+          setProblem(describeConnectionProblem(err))
         }
       })
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    load()
+  }, [load])
 
   const login = useCallback(async (username: string, password: string) => {
     const loggedInUser = await api.post<CurrentUser>('/api/auth/login', { username, password })
@@ -37,11 +42,5 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }, [])
 
-  return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>
-}
-
-export function useAuth() {
-  const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth must be used within an AuthProvider')
-  return ctx
+  return <AuthContext.Provider value={{ user, loading, problem, retry: load, login, logout }}>{children}</AuthContext.Provider>
 }
